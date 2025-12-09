@@ -81,12 +81,12 @@ const ARControls = ({ onBack, isMuted, onToggleMute, isMarkerVisible }: ARContro
                   "text-sm font-medium transition-colors duration-300",
                   isMarkerVisible ? "text-primary text-glow" : "text-foreground"
                 )}>
-                  {isMarkerVisible ? 'Marker Detected!' : 'Scanning for HIRO marker...'}
+                  {isMarkerVisible ? 'Target Detected!' : 'Scanning for target image...'}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   {isMarkerVisible 
                     ? 'Video is now playing' 
-                    : 'Point camera at the marker to start'}
+                    : 'Point camera at the card image to start'}
                 </p>
               </div>
             </div>
@@ -132,23 +132,27 @@ const ARControls = ({ onBack, isMuted, onToggleMute, isMarkerVisible }: ARContro
                 <h3 className="text-foreground font-medium">How to Use</h3>
                 <ol className="list-decimal list-inside space-y-1">
                   <li>Allow camera access when prompted</li>
-                  <li>Point your camera at a HIRO marker</li>
-                  <li>Video will play automatically on the marker</li>
+                  <li>Point your camera at the target card image</li>
+                  <li>Video will play automatically on the target</li>
                   <li>Use the mute button to toggle audio</li>
                 </ol>
               </div>
 
               <div className="space-y-2">
-                <h3 className="text-foreground font-medium">HIRO Marker</h3>
-                <p>
-                  You can find the HIRO marker by searching "HIRO AR marker" 
-                  or print it from the AR.js documentation.
+                <h3 className="text-foreground font-medium">Target Image</h3>
+                <p className="mb-2">
+                  Point your camera at this card image:
                 </p>
+                <img 
+                  src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.4/examples/image-tracking/assets/card-example/card.png"
+                  alt="Target card"
+                  className="w-full rounded-lg border border-border/30"
+                />
               </div>
 
               <div className="pt-2 border-t border-border/20">
                 <p className="text-xs text-center text-muted-foreground/60">
-                  Powered by A-Frame & AR.js
+                  Powered by A-Frame & MindAR
                 </p>
               </div>
             </div>

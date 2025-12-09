@@ -34,30 +34,17 @@ const ARScene = ({ onMarkerFound, onMarkerLost, isMuted }: ARSceneProps) => {
 
   useEffect(() => {
     const loadScripts = async () => {
-      // Check if MindAR is already loaded
-      if ((window as Window & { MINDAR?: unknown }).MINDAR) {
+      // Check if already loaded
+      if ((window as Window & { AFRAME?: unknown }).AFRAME && 
+          (window as Window & { MINDAR?: unknown }).MINDAR) {
         setIsSceneReady(true);
         return;
       }
 
-      // Load A-Frame 1.2.0 (compatible with MindAR)
-      if (!document.querySelector('script[src*="aframe"]')) {
-        const aframeScript = document.createElement('script');
-        aframeScript.src = 'https://aframe.io/releases/1.2.0/aframe.min.js';
-        aframeScript.async = false;
-        
-        await new Promise((resolve, reject) => {
-          aframeScript.onload = resolve;
-          aframeScript.onerror = reject;
-          document.head.appendChild(aframeScript);
-        });
-      }
-
-      // Load MindAR image tracking
-      if (!document.querySelector('script[src*="mindar-image"]')) {
+      // Load MindAR first (must be before A-Frame)
+      if (!document.querySelector('script[src*="mindar-image.prod"]')) {
         const mindarScript = document.createElement('script');
-        mindarScript.src = 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js';
-        mindarScript.async = false;
+        mindarScript.src = 'https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.4/dist/mindar-image.prod.js';
         
         await new Promise((resolve, reject) => {
           mindarScript.onload = resolve;
@@ -66,11 +53,22 @@ const ARScene = ({ onMarkerFound, onMarkerLost, isMuted }: ARSceneProps) => {
         });
       }
 
+      // Load A-Frame 1.2.0
+      if (!document.querySelector('script[src*="aframe"]')) {
+        const aframeScript = document.createElement('script');
+        aframeScript.src = 'https://aframe.io/releases/1.2.0/aframe.min.js';
+        
+        await new Promise((resolve, reject) => {
+          aframeScript.onload = resolve;
+          aframeScript.onerror = reject;
+          document.head.appendChild(aframeScript);
+        });
+      }
+
       // Load MindAR A-Frame integration
       if (!document.querySelector('script[src*="mindar-image-aframe"]')) {
         const mindarAframeScript = document.createElement('script');
-        mindarAframeScript.src = 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js';
-        mindarAframeScript.async = false;
+        mindarAframeScript.src = 'https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.4/dist/mindar-image-aframe.prod.js';
         
         await new Promise((resolve, reject) => {
           mindarAframeScript.onload = resolve;
@@ -97,12 +95,12 @@ const ARScene = ({ onMarkerFound, onMarkerLost, isMuted }: ARSceneProps) => {
     if (!isSceneReady || !containerRef.current) return;
 
     // Create the AR scene with MindAR image tracking
-    // Using HIRO marker image as the target
+    // Using MindAR's official example target
     const sceneHTML = `
       <a-scene
-        mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/nicofirst1/hiro-marker@main/hiro.mind; uiScanning: #scanning-overlay; uiLoading: no;"
+        mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.1.4/examples/image-tracking/assets/card-example/card.mind;"
         color-space="sRGB"
-        renderer="colorManagement: true; physicallyCorrectLights: true;"
+        renderer="colorManagement: true, physicallyCorrectLights"
         vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: false"
         embedded
@@ -126,14 +124,13 @@ const ARScene = ({ onMarkerFound, onMarkerLost, isMuted }: ARSceneProps) => {
         <a-entity mindar-image-target="targetIndex: 0">
           <a-video
             src="#ar-video-asset"
-            width="1.6"
-            height="0.9"
+            width="1"
+            height="0.56"
             position="0 0 0"
             rotation="0 0 0"
           ></a-video>
         </a-entity>
       </a-scene>
-      <div id="scanning-overlay" style="display: none;"></div>
     `;
 
     containerRef.current.innerHTML = sceneHTML;

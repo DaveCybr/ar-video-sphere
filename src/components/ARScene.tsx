@@ -10,33 +10,40 @@ const ARScene = ({ onMarkerFound, onMarkerLost, isMuted }: ARSceneProps) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isSceneReady, setIsSceneReady] = useState(false);
+  const markerVisibleRef = useRef(false);
 
   const handleMarkerFound = useCallback(() => {
-    onMarkerFound();
-    if (videoRef.current) {
-      videoRef.current.play().catch(console.error);
+    if (!markerVisibleRef.current) {
+      markerVisibleRef.current = true;
+      onMarkerFound();
+      if (videoRef.current) {
+        videoRef.current.play().catch(console.error);
+      }
     }
   }, [onMarkerFound]);
 
   const handleMarkerLost = useCallback(() => {
-    onMarkerLost();
-    if (videoRef.current) {
-      videoRef.current.pause();
+    if (markerVisibleRef.current) {
+      markerVisibleRef.current = false;
+      onMarkerLost();
+      if (videoRef.current) {
+        videoRef.current.pause();
+      }
     }
   }, [onMarkerLost]);
 
   useEffect(() => {
     const loadScripts = async () => {
-      // Check if already loaded
-      if ((window as Window & { AFRAME?: unknown }).AFRAME) {
+      // Check if MindAR is already loaded
+      if ((window as Window & { MINDAR?: unknown }).MINDAR) {
         setIsSceneReady(true);
         return;
       }
 
-      // Load A-Frame 1.3.0 (compatible with AR.js)
+      // Load A-Frame 1.2.0 (compatible with MindAR)
       if (!document.querySelector('script[src*="aframe"]')) {
         const aframeScript = document.createElement('script');
-        aframeScript.src = 'https://aframe.io/releases/1.3.0/aframe.min.js';
+        aframeScript.src = 'https://aframe.io/releases/1.2.0/aframe.min.js';
         aframeScript.async = false;
         
         await new Promise((resolve, reject) => {
@@ -46,20 +53,33 @@ const ARScene = ({ onMarkerFound, onMarkerLost, isMuted }: ARSceneProps) => {
         });
       }
 
-      // Load AR.js (compatible version)
-      if (!document.querySelector('script[src*="aframe-ar"]')) {
-        const arjsScript = document.createElement('script');
-        arjsScript.src = 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js';
-        arjsScript.async = false;
+      // Load MindAR image tracking
+      if (!document.querySelector('script[src*="mindar-image"]')) {
+        const mindarScript = document.createElement('script');
+        mindarScript.src = 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image.prod.js';
+        mindarScript.async = false;
         
         await new Promise((resolve, reject) => {
-          arjsScript.onload = resolve;
-          arjsScript.onerror = reject;
-          document.head.appendChild(arjsScript);
+          mindarScript.onload = resolve;
+          mindarScript.onerror = reject;
+          document.head.appendChild(mindarScript);
         });
       }
 
-      // Wait a bit for scripts to initialize
+      // Load MindAR A-Frame integration
+      if (!document.querySelector('script[src*="mindar-image-aframe"]')) {
+        const mindarAframeScript = document.createElement('script');
+        mindarAframeScript.src = 'https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js';
+        mindarAframeScript.async = false;
+        
+        await new Promise((resolve, reject) => {
+          mindarAframeScript.onload = resolve;
+          mindarAframeScript.onerror = reject;
+          document.head.appendChild(mindarAframeScript);
+        });
+      }
+
+      // Wait for scripts to initialize
       setTimeout(() => setIsSceneReady(true), 500);
     };
 
@@ -76,13 +96,16 @@ const ARScene = ({ onMarkerFound, onMarkerLost, isMuted }: ARSceneProps) => {
   useEffect(() => {
     if (!isSceneReady || !containerRef.current) return;
 
-    // Create the AR scene HTML
+    // Create the AR scene with MindAR image tracking
+    // Using HIRO marker image as the target
     const sceneHTML = `
       <a-scene
-        embedded
-        arjs="sourceType: webcam; videoTexture: true; debugUIEnabled: false; detectionMode: mono_and_matrix; matrixCodeType: 3x3;"
+        mindar-image="imageTargetSrc: https://cdn.jsdelivr.net/gh/nicofirst1/hiro-marker@main/hiro.mind; uiScanning: #scanning-overlay; uiLoading: no;"
+        color-space="sRGB"
+        renderer="colorManagement: true; physicallyCorrectLights: true;"
         vr-mode-ui="enabled: false"
-        renderer="logarithmicDepthBuffer: true; precision: medium;"
+        device-orientation-permission-ui="enabled: false"
+        embedded
         style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;"
       >
         <a-assets>
@@ -97,24 +120,20 @@ const ARScene = ({ onMarkerFound, onMarkerLost, isMuted }: ARSceneProps) => {
             muted
           ></video>
         </a-assets>
-        <a-marker
-          preset="hiro"
-          emitevents="true"
-          smooth="true"
-          smoothCount="10"
-          smoothTolerance="0.01"
-          smoothThreshold="5"
-        >
+
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+        <a-entity mindar-image-target="targetIndex: 0">
           <a-video
             src="#ar-video-asset"
-            width="2"
-            height="1.125"
-            position="0 0.5 0"
-            rotation="-90 0 0"
+            width="1.6"
+            height="0.9"
+            position="0 0 0"
+            rotation="0 0 0"
           ></a-video>
-        </a-marker>
-        <a-entity camera></a-entity>
+        </a-entity>
       </a-scene>
+      <div id="scanning-overlay" style="display: none;"></div>
     `;
 
     containerRef.current.innerHTML = sceneHTML;
@@ -126,30 +145,28 @@ const ARScene = ({ onMarkerFound, onMarkerLost, isMuted }: ARSceneProps) => {
       videoEl.muted = isMuted;
     }
 
-    // Set up marker events
-    const setupMarkerEvents = () => {
-      const marker = document.querySelector('a-marker');
-      if (marker) {
-        marker.addEventListener('markerFound', handleMarkerFound);
-        marker.addEventListener('markerLost', handleMarkerLost);
+    // Set up target events
+    const setupTargetEvents = () => {
+      const target = document.querySelector('[mindar-image-target]');
+      if (target) {
+        target.addEventListener('targetFound', handleMarkerFound);
+        target.addEventListener('targetLost', handleMarkerLost);
       }
     };
 
     // Wait for scene to be ready
     const scene = document.querySelector('a-scene');
     if (scene) {
-      if ((scene as HTMLElement & { hasLoaded?: boolean }).hasLoaded) {
-        setupMarkerEvents();
-      } else {
-        scene.addEventListener('loaded', setupMarkerEvents);
-      }
+      scene.addEventListener('renderstart', setupTargetEvents);
+      // Also try immediate setup in case scene is already loaded
+      setTimeout(setupTargetEvents, 1000);
     }
 
     return () => {
-      const marker = document.querySelector('a-marker');
-      if (marker) {
-        marker.removeEventListener('markerFound', handleMarkerFound);
-        marker.removeEventListener('markerLost', handleMarkerLost);
+      const target = document.querySelector('[mindar-image-target]');
+      if (target) {
+        target.removeEventListener('targetFound', handleMarkerFound);
+        target.removeEventListener('targetLost', handleMarkerLost);
       }
       if (containerRef.current) {
         containerRef.current.innerHTML = '';

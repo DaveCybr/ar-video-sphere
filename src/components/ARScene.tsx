@@ -33,10 +33,10 @@ const ARScene = ({ onMarkerFound, onMarkerLost, isMuted }: ARSceneProps) => {
         return;
       }
 
-      // Load A-Frame
+      // Load A-Frame 1.3.0 (compatible with AR.js)
       if (!document.querySelector('script[src*="aframe"]')) {
         const aframeScript = document.createElement('script');
-        aframeScript.src = 'https://aframe.io/releases/1.4.0/aframe.min.js';
+        aframeScript.src = 'https://aframe.io/releases/1.3.0/aframe.min.js';
         aframeScript.async = false;
         
         await new Promise((resolve, reject) => {
@@ -46,10 +46,10 @@ const ARScene = ({ onMarkerFound, onMarkerLost, isMuted }: ARSceneProps) => {
         });
       }
 
-      // Load AR.js
+      // Load AR.js (compatible version)
       if (!document.querySelector('script[src*="aframe-ar"]')) {
         const arjsScript = document.createElement('script');
-        arjsScript.src = 'https://raw.githack.com/AR-js-org/AR.js/master/aframe/build/aframe-ar.js';
+        arjsScript.src = 'https://cdn.jsdelivr.net/gh/AR-js-org/AR.js@3.4.5/aframe/build/aframe-ar.js';
         arjsScript.async = false;
         
         await new Promise((resolve, reject) => {
